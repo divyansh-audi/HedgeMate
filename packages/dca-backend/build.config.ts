@@ -4,8 +4,9 @@ import { defineBuildConfig } from 'unbuild';
 export default defineBuildConfig({
   clean: true,
   declaration: true,
-  entries: ['src/bin/serverWorker', 'src/bin/jobWorker', 'src/bin/apiServer'],
+  entries: ['src/bin/jobWorker', 'src/bin/apiServer'],
   externals: [],
+  failOnWarn: false,
   outDir: 'dist',
   rollup: {
     emitCJS: false,
