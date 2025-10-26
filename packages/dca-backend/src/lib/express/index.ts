@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/node';
-import cors from 'cors';
+// import cors from 'cors';
 import express, { Express, NextFunction, Response } from 'express';
 import helmet from 'helmet';
 
@@ -17,10 +17,10 @@ const { handler, middleware } = createVincentUserMiddleware({
   allowedAudience: ALLOWED_AUDIENCE,
   requiredAppId: VINCENT_APP_ID,
 });
-const corsConfig = {
-  optionsSuccessStatus: 204,
-  origin: IS_DEVELOPMENT ? true : [CORS_ALLOWED_DOMAIN],
-};
+// const corsConfig = {
+//   optionsSuccessStatus: 204,
+//   origin: IS_DEVELOPMENT ? true : [CORS_ALLOWED_DOMAIN],
+// };
 const setSentryUserMiddleware = handler(
   (req: VincentAuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!isAppUser(req.user.decodedJWT)) {
@@ -41,7 +41,8 @@ export const registerRoutes = (app: Express) => {
   } else {
     serviceLogger.info(`Configuring CORS with allowed domain: ${CORS_ALLOWED_DOMAIN}`);
   }
-  app.use(cors(corsConfig));
+  // app.use(cors(corsConfig));
   app.use('/api/v1/rules', middleware, setSentryUserMiddleware, handler(router));
+  app.use('/api/v1/rules', router);
   serviceLogger.info(`Routes registered`);
 };
