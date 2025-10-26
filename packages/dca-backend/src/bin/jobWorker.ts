@@ -7,8 +7,8 @@ async function gogo() {
     await startAgenda();
     serviceLogger.info('✅ Job worker started and connected to Agenda.');
   } catch (error) {
-    serviceLogger.error('!!! Failed to initialize service', error);
-    throw error;
+    // serviceLogger.error('!!! Failed to initialize service', error);
+    // throw error;
   }
 }
 
