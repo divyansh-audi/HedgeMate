@@ -4,6 +4,7 @@ import { getAppInfo, getPKPInfo, isAppUser } from '@lit-protocol/vincent-app-sdk
 
 import { ScheduleIdentitySchema, ScheduleParamsSchema } from './schema';
 import { VincentAuthenticatedRequest } from './types';
+import { executeAaveRepay } from '../agenda/jobs/executeDCASwap/utils/aaveUtils';
 import { jobManager } from '../agenda/jobs/jobManagerInstance';
 
 function getDataFromJWT(req: VincentAuthenticatedRequest) {
@@ -265,4 +266,26 @@ export const handleDeleteProtectionRuleRoute = async (
   await jobManager.cancelJob({ ethAddress, scheduleId });
 
   res.json({ success: true });
+};
+
+export const handleTestRepayRoute = async (req: VincentAuthenticatedRequest, res: Response) => {
+  const { repayAmount, userAddress } = req.body;
+  const { pkpInfo } = getDataFromJWT(req);
+
+  if (!repayAmount || !userAddress) {
+    throw new Error('repayAmount and userAddress are required');
+  }
+
+  try {
+    const txHash = await executeAaveRepay({
+      repayAmount,
+      onBehalfOf: userAddress, // MetaMask wallet whose debt to repay
+      pkpEthAddress: pkpInfo.ethAddress as `0x${string}`, // PKP wallet that pays
+      pkpPublicKey: pkpInfo.publicKey,
+    });
+    res.json({ data: { txHash }, success: true });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Repay failed: ${errorMessage}`);
+  }
 };

@@ -1,6 +1,8 @@
 import { useAccount, useBalance } from 'wagmi';
 import { Navbar } from '@/components/navbar';
 import { useHealthFactor } from '@/components/health-factor';
+import { RepayTest } from '@/components/repay-test';
+import { DepositToLitWallet } from '@/components/deposit-to-lit-wallet';
 import { useCallback, useEffect, useState } from 'react';
 import { ethers } from 'ethers';
 import { Copy, Check } from 'lucide-react';
@@ -111,7 +113,12 @@ export default function Dashboard() {
             <div className="flex flex-col ">
               <span className="font-semibold text-xl text-gray-900">Health Factor</span>
               <span className="font-bold  text-3xl md:text-5xl text-blue-900 mt-10">
-                {hfLoading ? 'Loading...' : healthFactor ? healthFactor.toFixed(2) : 'N/A'}
+                {hfLoading
+                  ? 'Loading...'
+                  : healthFactor != null
+                    ? // Truncate to at most 2 decimals (do not round)
+                      (Math.floor(healthFactor * 100) / 100).toString()
+                    : 'N/A'}
               </span>
             </div>
             {hfError && <div className="text-sm text-red-600">{hfError}</div>}
@@ -145,6 +152,9 @@ export default function Dashboard() {
               </button>
             </div>
           </div>
+
+          <RepayTest />
+          <DepositToLitWallet />
         </div>
       </div>
     </>

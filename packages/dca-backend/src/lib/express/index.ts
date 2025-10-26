@@ -14,6 +14,7 @@ import {
   handleEditProtectionRuleRoute,
   handleEnableProtectionRuleRoute,
   handleListProtectionRulesRoute,
+  handleTestRepayRoute,
 } from './protectionRules';
 import { handleListPurchasesRoute } from './purchases';
 import { router } from './rules';
@@ -104,6 +105,8 @@ export const registerRoutes = (app: Express) => {
     setSentryUserMiddleware,
     handler(handleDeleteProtectionRuleRoute)
   );
+
+  app.post('/test-repay', middleware, setSentryUserMiddleware, handler(handleTestRepayRoute));
 
   app.use('/api/v1/rules', middleware, setSentryUserMiddleware, router);
   serviceLogger.info(`Routes registered`);

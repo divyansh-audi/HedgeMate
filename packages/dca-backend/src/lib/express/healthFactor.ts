@@ -16,7 +16,9 @@ export const handleGetHealthFactorRoute = async (
 
     const healthFactor = await checkHealthFactor(userAddress);
 
-    return res.json({ data: { healthFactor }, success: true });
+    // Return the numeric health factor directly as `data` so the frontend
+    // `sendRequest<number>` receives a number (not an object).
+    return res.json({ data: healthFactor, success: true });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to fetch health factor', success: false });
   }
