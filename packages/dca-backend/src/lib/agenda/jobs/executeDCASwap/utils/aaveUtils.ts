@@ -1,11 +1,11 @@
 import consola from 'consola';
 import { ethers } from 'ethers';
 
+import { env } from '../../../../env';
+import { getErc20ApprovalToolClient } from '../vincentAbilities';
 import { alchemyGasSponsor, alchemyGasSponsorApiKey, alchemyGasSponsorPolicyId } from './alchemy';
 import { AAVE_POOL_ABI, AAVE_POOL_ADDRESS_SEPOLIA, USDC_ADDRESS_SEPOLIA } from './constants';
 import { handleOperationExecution } from './handle-operation-execution';
-import { env } from '../../../../env';
-import { getErc20ApprovalToolClient } from '../vincentAbilities';
 
 const { ALCHEMY_API_KEY } = env;
 
@@ -115,49 +115,49 @@ export async function executeAaveRepay({
     consola.debug('Approval already exists, skipping approval transaction');
   }
 
-  // Step 2: Execute repay transaction
-  // NOTE: This requires creating a custom Vincent ability for Aave repay
-  // For now, we'll prepare the calldata but throw an informative error
-
+  // Step 2: Execute repay transaction using direct contract call
+  // Using backend wallet (delegatee) to call the repay function on behalf of the user
+  // The PKP wallet has already approved USDC, so Aave will pull from PKP wallet
   consola.debug('Preparing repay transaction...');
 
-  // Encode the repay function call
-  const aavePool = new ethers.Contract(AAVE_POOL_ADDRESS_SEPOLIA, AAVE_POOL_ABI, sepoliaProvider);
-  const repayCalldata = aavePool.interface.encodeFunctionData('repay', [
-    USDC_ADDRESS_SEPOLIA, // Asset to repay (USDC)
-    amountInWei, // Amount to repay
-    2, // Variable rate mode
-    onBehalfOf, // MetaMask wallet whose debt to repay
-  ]);
-
-  consola.debug('Repay calldata prepared:', {
+  consola.debug('Repay transaction details:', {
     repayAmount,
     debtOwner: onBehalfOf,
     payer: pkpEthAddress,
   });
 
-  consola.error('Aave repay via PKP requires a custom Vincent ability');
+  // Get backend signer (delegatee wallet)
+  const signer = getSigner(SEPOLIA_CHAIN_ID);
 
-  const approvalStatus = approvalPrecheckResult.result.alreadyApproved
-    ? 'already set'
-    : 'just completed';
+  // Create Aave Pool contract instance
+  const aavePool = new ethers.Contract(AAVE_POOL_ADDRESS_SEPOLIA, AAVE_POOL_ABI, signer);
 
-  throw new Error(
-    `PKP-signed Aave repay is not yet fully implemented.
+  consola.debug('Executing repay transaction via backend wallet...');
 
-Flow:
-- PKP Wallet (${pkpEthAddress}) will pay the USDC
-- MetaMask Wallet (${onBehalfOf}) will have their debt reduced
-- Approval was ${approvalStatus}
-
-To complete this implementation, you need to:
-1. Create a custom Vincent ability for Aave repay (similar to @lit-protocol/vincent-ability-erc20-approval)
-2. Or use the @lit-protocol/vincent-scaffold-sdk to create a generic contract interaction ability
-3. The approval step above works correctly with PKP signing
-
-Requirements:
-- PKP wallet needs USDC (${repayAmount}) and ETH for gas on Sepolia
-- Repay calldata is ready: ${repayCalldata.slice(0, 20)}...
-- Next: implement the repay transaction execution with PKP signature`
+  // Execute the repay transaction
+  // The backend wallet calls repay(), but Aave pulls USDC from PKP wallet (which approved)
+  // to repay the debt of onBehalfOf address (MetaMask wallet)
+  const tx = await aavePool.repay(
+    USDC_ADDRESS_SEPOLIA, // asset
+    amountInWei, // amount
+    2, // interestRateMode (variable rate)
+    onBehalfOf // onBehalfOf - whose debt to repay (MetaMask wallet)
   );
+
+  consola.debug('Repay transaction sent:', tx.hash);
+
+  // Wait for transaction confirmation
+  const receipt = await tx.wait();
+  consola.debug('Repay transaction confirmed:', receipt.transactionHash);
+
+  const repayHash = receipt.transactionHash as `0x${string}`;
+
+  consola.log('Aave repay completed successfully!', {
+    repayAmount,
+    repayHash,
+    debtOwner: onBehalfOf,
+    payer: pkpEthAddress,
+  });
+
+  return repayHash;
 }

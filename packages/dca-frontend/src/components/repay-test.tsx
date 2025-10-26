@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useAccount } from 'wagmi';
 import { useJwtContext } from '@lit-protocol/vincent-app-sdk/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { env } from '@/config/env';
 
 export function RepayTest() {
+  const { address: metaMaskAddress } = useAccount();
   const { authInfo } = useJwtContext();
   const [repayAmount, setRepayAmount] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -12,8 +14,8 @@ export function RepayTest() {
   const [success, setSuccess] = useState<string>('');
 
   const handleRepay = async () => {
-    if (!authInfo?.pkp.ethAddress || !repayAmount) {
-      setError('Please enter an amount and connect your wallet');
+    if (!authInfo?.pkp.ethAddress || !repayAmount || !metaMaskAddress) {
+      setError('Please connect MetaMask and enter an amount');
       return;
     }
 
@@ -33,8 +35,8 @@ export function RepayTest() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userAddress: authInfo.pkp.ethAddress,
-          repayAmount: repayAmount,
+          repayAmount,
+          userAddress: metaMaskAddress, // MetaMask wallet whose debt to repay
         }),
       });
 
@@ -59,25 +61,49 @@ export function RepayTest() {
     <div className="flex flex-col items-start border-2 border-amber-100 rounded-2xl w-full md:w-xl p-6 shadow-md bg-amber-50">
       <span className="font-semibold text-xl text-gray-900 mb-4">Test Repay (PKP Wallet)</span>
 
+      {authInfo?.pkp.ethAddress && (
+        <div className="w-full mb-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+          <div>
+            <strong>PKP Wallet (Payer):</strong> {authInfo.pkp.ethAddress}
+          </div>
+          <div className="text-gray-600 mt-1">This wallet will pay the USDC to repay the debt</div>
+        </div>
+      )}
+
+      {metaMaskAddress && (
+        <div className="w-full mb-3 p-2 bg-green-50 border border-green-200 rounded text-xs">
+          <div>
+            <strong>MetaMask Wallet (Debt Owner):</strong> {metaMaskAddress}
+          </div>
+          <div className="text-gray-600 mt-1">This wallet's Aave debt will be reduced</div>
+        </div>
+      )}
+
+      {!metaMaskAddress && (
+        <div className="w-full mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+          Please connect your MetaMask wallet to continue
+        </div>
+      )}
+
       <div className="w-full space-y-3">
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">Repay Amount (USDC)</label>
+          <label className="text-sm font-medium text-gray-700">Repay Amount (USDC) *</label>
           <Input
             type="number"
             placeholder="Enter amount to repay"
             value={repayAmount}
             onChange={(e) => setRepayAmount(e.target.value)}
-            disabled={isLoading}
+            disabled={isLoading || !metaMaskAddress}
             step="0.01"
           />
         </div>
 
         <Button
           onClick={handleRepay}
-          disabled={isLoading || !repayAmount}
+          disabled={isLoading || !repayAmount || !metaMaskAddress}
           className="w-full bg-amber-600 hover:bg-amber-700"
         >
-          {isLoading ? 'Processing...' : 'Repay USDC'}
+          {isLoading ? 'Processing...' : 'Repay USDC Debt'}
         </Button>
 
         {error && (
