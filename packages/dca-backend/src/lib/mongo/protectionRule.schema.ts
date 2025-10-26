@@ -9,7 +9,7 @@ export interface IProtectionRule extends Document {
   protocol: string;
   repayAmount: string;
   triggerPrice: string;
-  user: mongoose.Schema.Types.ObjectId;
+  user: string;
 }
 
 const ProtectionRuleSchema: Schema = new Schema(
@@ -22,7 +22,7 @@ const ProtectionRuleSchema: Schema = new Schema(
     protocol: { default: 'AaveV3', required: true, type: String },
     repayAmount: { required: true, type: String },
     triggerPrice: { required: true, type: String },
-    user: { ref: 'User', required: true, type: mongoose.Schema.Types.ObjectId }, // this is smthing optional
+    user: { index: true, required: true, type: String },
   },
   { timestamps: true }
 );
